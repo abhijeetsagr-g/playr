@@ -29,10 +29,14 @@ class MusicProvider extends ChangeNotifier {
     await _service.play();
   }
 
-  Future<void> play() => _service.play();
-  Future<void> pause() => _service.pause();
   Future<void> next() => _service.skipToNext();
   Future<void> previous() => _service.skipToPrevious();
+  Future<void> togglePlayAndPause() =>
+      isPlaying ? _service.pause() : _service.play();
+
+  void seek(Duration position) => _service.seek(position);
+  Stream<Duration> get positionStream => _service.positionStream;
+  Stream<Duration?> get durationStream => _service.durationStream;
 
   // Derived state (read-only)
   bool get isPlaying => _service.playbackState.value.playing;

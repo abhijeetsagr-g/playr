@@ -8,6 +8,10 @@ Future<Uri?> saveArtworkToFile(Uint8List? bytes, String id) async {
   final dir = await getTemporaryDirectory();
   final file = File('${dir.path}/art_$id.jpg');
 
+  if (await file.exists()) {
+    return file.uri;
+  }
+
   await file.writeAsBytes(bytes, flush: true);
   return file.uri;
 }

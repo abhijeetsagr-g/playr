@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:playr/logic/providers/file_provider.dart';
 import 'package:playr/logic/providers/music_provider.dart';
+import 'package:playr/ui/home/home_view.dart';
 import 'package:provider/provider.dart';
 
 class RootPage extends StatefulWidget {
@@ -23,9 +24,8 @@ class _RootPageState extends State<RootPage> {
 
   @override
   Widget build(BuildContext context) {
-    final music = context.watch<MusicProvider>();
     return Scaffold(
-      body: Center(
+      body: SafeArea(
         child: Consumer<FileProvider>(
           builder: (context, fileProvider, child) {
             if (fileProvider.isLoading) {
@@ -35,24 +35,8 @@ class _RootPageState extends State<RootPage> {
             if (fileProvider.allSongs.isEmpty) {
               return Center(child: Text("No Songs Avaliable"));
             }
-            return ListView.builder(
-              itemCount: fileProvider.allSongs.length,
-              itemBuilder: (context, index) {
-                final song = fileProvider.allSongs.elementAt(index);
 
-                return InkWell(
-                  onTap: () => music.playPlaylist(fileProvider.allSongs, index),
-                  child: ListTile(
-                    title: Text(song.title),
-                    trailing: Icon(
-                      music.currentIndex == index && music.isPlaying
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                    ),
-                  ),
-                );
-              },
-            );
+            return HomeView();
           },
         ),
       ),

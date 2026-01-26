@@ -11,7 +11,6 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   void _init() {
-    // listen to player State
     _player.playerStateStream.listen((state) {
       playbackState.add(
         playbackState.value.copyWith(
@@ -28,17 +27,22 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
           androidCompactActionIndices: const [0, 1, 2],
           playing: state.playing,
           processingState: _mapState(state.processingState),
-          updatePosition: _player.position,
         ),
       );
     });
 
-    // listen to queue
+    _player.positionStream.listen((position) {
+      playbackState.add(playbackState.value.copyWith(updatePosition: position));
+    });
+
     _player.currentIndexStream.listen((index) {
       _currentIndex = index;
 
       if (index != null && index < _playlist.length) {
         mediaItem.add(_playlist[index]);
+        playbackState.add(
+          playbackState.value.copyWith(updatePosition: Duration.zero),
+        );
       }
     });
   }
@@ -61,7 +65,17 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   @override
   Future<void> skipToPrevious() async {
+    if (_player.position >= Duration(seconds: 3)) {
+      seek(Duration.zero);
+      return;
+    }
+
     await _player.seekToPrevious();
+  }
+
+  @override
+  Future<void> seek(Duration position) async {
+    await _player.seek(position);
   }
 
   Future<void> setPlaylist(List<MediaItem> items, int startIndex) async {
@@ -100,4 +114,6 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   // getter
   int? get currentIndex => _currentIndex;
+  Stream<Duration> get positionStream => _player.positionStream;
+  Stream<Duration?> get durationStream => _player.durationStream;
 }
