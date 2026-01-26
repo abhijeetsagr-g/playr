@@ -42,4 +42,7 @@ class FileService {
     }
     return songs;
   }
+
+  // getters
+  bool get hasPermission => _hasPermission;
 }

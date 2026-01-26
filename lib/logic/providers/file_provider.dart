@@ -12,10 +12,11 @@ class FileProvider extends ChangeNotifier {
   List<Song> _allSongs = [];
   List<Song> get allSongs => _allSongs;
 
-  void init() async {
-    _changeLoading(false);
-    await _service.getPermission();
+  Future<void> init() async {
     _changeLoading(true);
+    await _service.getPermission();
+    await getMedia();
+    _changeLoading(false);
   }
 
   Future<void> getMedia() async {
@@ -23,6 +24,8 @@ class FileProvider extends ChangeNotifier {
     _allSongs = await _service.getMedia();
     _changeLoading(true);
   }
+
+  bool hasPermission() => _service.hasPermission;
 
   // helpers
   void _changeLoading(bool isloading) {
