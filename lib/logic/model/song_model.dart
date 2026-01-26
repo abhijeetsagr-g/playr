@@ -1,5 +1,8 @@
 import 'dart:typed_data';
 
+import 'package:audio_service/audio_service.dart';
+import 'package:playr/core/utils/artwork_utils.dart';
+
 class Song {
   String path;
   String title;
