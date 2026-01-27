@@ -37,7 +37,6 @@ class MusicProvider extends ChangeNotifier {
     });
   }
 
-  // Commands
   Future<void> playPlaylist(List<Song> songs, int startIndex) async {
     final items = <MediaItem>[];
 
@@ -50,6 +49,13 @@ class MusicProvider extends ChangeNotifier {
     await _service.play();
   }
 
+  Future<void> addToQueue(Song song) async {
+    final item = await SongMediaItemMapper.map(song);
+
+    await _service.addSongToQueue(item);
+  }
+
+  // Commands
   Future<void> togglePlayAndPause() async {
     final state = _service.playbackState.value;
 

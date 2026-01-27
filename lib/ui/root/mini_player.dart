@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:playr/logic/providers/music_provider.dart';
 import 'package:provider/provider.dart';

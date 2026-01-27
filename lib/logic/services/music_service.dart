@@ -3,8 +3,8 @@ import 'package:just_audio/just_audio.dart';
 
 class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
-  final List<MediaItem> _playlist = [];
-  int? _currentIndex;
+  List<MediaItem> _playlist = [];
+  int _currentIndex = -1;
 
   MusicService() {
     _init();
@@ -103,22 +103,52 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
     await _player.seek(position);
   }
 
-  Future<void> setPlaylist(List<MediaItem> items, int startIndex) async {
+  // playlist management
+  Future<void> setPlaylist(
+    List<MediaItem> items,
+    int startIndex, {
+    bool play = true,
+  }) async {
+    _playlist = items;
     _currentIndex = startIndex;
-    _playlist
-      ..clear()
-      ..addAll(items);
 
-    // Build audio source list
+    // Convert your items to AudioSources
     final sources = items
-        .map((item) => AudioSource.uri(Uri.parse(item.id)))
+        .map(
+          (item) => AudioSource.uri(
+            Uri.parse(item.id),
+            tag: item, // Use tag to keep track of metadata
+          ),
+        )
         .toList();
 
-    await _player.setAudioSources(sources, initialIndex: startIndex);
+    await _player.setAudioSources(
+      sources,
+      initialIndex: startIndex,
+      initialPosition: Duration.zero,
+    );
 
-    // Update queue and mediaItem streams
-    queue.add(List.unmodifiable(_playlist));
-    mediaItem.add(_playlist[startIndex]);
+    // Update your streams/UI
+    queue.add(_playlist);
+    mediaItem.add(_playlist[_currentIndex]);
+
+    if (!play) {
+      await _player.play();
+    }
+  }
+
+  Future<void> addSongToQueue(MediaItem item) async {
+    final source = AudioSource.uri(Uri.parse(item.id), tag: item);
+    final currentPlayingIndex = _player.currentIndex;
+
+    if (currentPlayingIndex != null) {
+      await _player.insertAudioSource(currentPlayingIndex + 1, source);
+
+      _playlist.insert(currentPlayingIndex + 1, item);
+      queue.add(List.from(_playlist));
+    } else {
+      await setPlaylist([item], 0, play: false);
+    }
   }
 
   // helper

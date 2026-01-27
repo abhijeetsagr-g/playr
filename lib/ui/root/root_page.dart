@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:playr/core/common/slide_up_route.dart';
 import 'package:playr/logic/providers/file_provider.dart';
-import 'package:playr/logic/providers/music_provider.dart';
 import 'package:playr/ui/home/home_view.dart';
 import 'package:playr/ui/player/player_view.dart';
 import 'package:playr/ui/root/mini_player.dart';
@@ -18,8 +17,8 @@ class _RootPageState extends State<RootPage> {
   int _currentIndex = 0;
   bool _isPlayerVisible = true;
 
-  List<String> _pageName = ["Library", "Playlists"];
-  List<Widget> _pages = [HomeView()];
+  final List<String> _pageName = ["Library", "Playlists"];
+  final List<Widget> _pages = [HomeView()];
 
   AppBar _appBar() => AppBar(
     backgroundColor: Colors.black,

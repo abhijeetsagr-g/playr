@@ -29,11 +29,11 @@ class HomeView extends StatelessWidget {
 
             return InkWell(
               onTap: () {
-                // Navigator.push(context, slideUpRoute(PlayerView()));
                 music.playPlaylist(fileProvider.allSongs, index);
               },
+              onDoubleTap: () => music.addToQueue(song),
               child: ListTile(
-                textColor: music.currentIndex == index
+                textColor: music.currentPath == song.path
                     ? Colors.purpleAccent
                     : null,
                 leading: AlbumArt(size: Size(44, 44), artwork: song.albumCover),
