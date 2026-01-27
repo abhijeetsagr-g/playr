@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:playr/core/configs/my_theme.dart';
 import 'package:playr/logic/providers/file_provider.dart';
 import 'package:playr/logic/providers/music_provider.dart';
 import 'package:playr/logic/services/file_service.dart';
@@ -39,6 +40,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, home: RootPage());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.dark,
+      darkTheme: MyTheme.darkTheme,
+      home: RootPage(),
+    );
   }
 }

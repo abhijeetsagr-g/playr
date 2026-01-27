@@ -11,39 +11,51 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   void _init() {
+    // Set an explicit initial state
+    playbackState.add(
+      PlaybackState(
+        controls: [],
+        systemActions: {
+          MediaAction.seek,
+          MediaAction.playPause,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
+        },
+        processingState: AudioProcessingState.idle,
+        playing: false,
+      ),
+    );
+
+    // Combine player state logic
     _player.playerStateStream.listen((state) {
+      final playing = state.playing;
+      final processingState = _mapState(state.processingState);
+
       playbackState.add(
         playbackState.value.copyWith(
+          playing: playing,
+          processingState: processingState,
+          // Update controls dynamically based on state
           controls: [
             MediaControl.skipToPrevious,
-            state.playing ? MediaControl.pause : MediaControl.play,
+            if (playing) MediaControl.pause else MediaControl.play,
             MediaControl.skipToNext,
           ],
-          systemActions: const {
-            MediaAction.seek,
-            MediaAction.seekForward,
-            MediaAction.seekBackward,
-          },
-          androidCompactActionIndices: const [0, 1, 2],
-          playing: state.playing,
-          processingState: _mapState(state.processingState),
         ),
       );
     });
 
-    _player.positionStream.listen((position) {
-      playbackState.add(playbackState.value.copyWith(updatePosition: position));
+    // Track Media Item changes safely
+    _player.currentIndexStream.listen((index) {
+      if (index != null && index < _playlist.length) {
+        _currentIndex = index;
+        mediaItem.add(_playlist[index]);
+      }
     });
 
-    _player.currentIndexStream.listen((index) {
-      _currentIndex = index;
-
-      if (index != null && index < _playlist.length) {
-        mediaItem.add(_playlist[index]);
-        playbackState.add(
-          playbackState.value.copyWith(updatePosition: Duration.zero),
-        );
-      }
+    // Position tracking (consider adding a throttle if UI performance dips)
+    _player.positionStream.listen((position) {
+      playbackState.add(playbackState.value.copyWith(updatePosition: position));
     });
   }
 
@@ -56,6 +68,19 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> pause() async {
     await _player.pause();
+  }
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await _player.dispose();
+    playbackState.add(
+      playbackState.value.copyWith(
+        playing: false,
+        processingState: AudioProcessingState.idle,
+      ),
+    );
+    return super.stop();
   }
 
   @override

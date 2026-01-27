@@ -28,20 +28,18 @@ class HomeView extends StatelessWidget {
             final song = fileProvider.allSongs.elementAt(index);
 
             return InkWell(
-              onTap: () => music.playPlaylist(fileProvider.allSongs, index),
+              onTap: () {
+                // Navigator.push(context, slideUpRoute(PlayerView()));
+                music.playPlaylist(fileProvider.allSongs, index);
+              },
               child: ListTile(
+                textColor: music.currentIndex == index
+                    ? Colors.purpleAccent
+                    : null,
                 leading: AlbumArt(size: Size(44, 44), artwork: song.albumCover),
                 title: Text(song.title),
                 subtitle: Text("${song.artist} . ${song.albumName}"),
-                trailing: index == music.currentIndex
-                    ? IconButton(
-                        onPressed: () => music.togglePlayAndPause(),
-                        icon: Icon(
-                          music.isPlaying ? Icons.pause : Icons.play_arrow,
-                          size: 24,
-                        ),
-                      )
-                    : Text(formatDur(song.totalDur)),
+                trailing: Text(formatDur(song.totalDur)),
               ),
             );
           },
