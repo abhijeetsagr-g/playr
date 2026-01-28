@@ -16,6 +16,8 @@ class MusicProvider extends ChangeNotifier {
   late final StreamSubscription _positionSub;
   late final StreamSubscription _durationSub;
 
+  bool _isLoopOnce = false;
+
   MusicProvider(this._service) {
     _stateSub = _service.playbackState.listen((_) {
       notifyListeners();
@@ -67,20 +69,37 @@ class MusicProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> toggleLoopOnce() async {
+    _isLoopOnce = !_isLoopOnce;
+    await _service.setLoopOne(_isLoopOnce);
+    notifyListeners();
+  }
+
+  Future<void> toggleShuffle() async {
+    _service.setShuffle(!isShuffleEnabled);
+    notifyListeners();
+  }
+
   Future<void> next() => _service.skipToNext();
   Future<void> previous() => _service.skipToPrevious();
 
   void seek(Duration position) => _service.seek(position);
+
   Stream<Duration> get positionStream => _service.positionStream;
   Stream<Duration?> get durationStream => _service.durationStream;
 
   // Derived state (read-only)
+  bool get isLoopOnce => _isLoopOnce;
+  bool get isShuffleEnabled => _service.isShuffleEnabled;
+
   bool get isPlaying => _service.playbackState.value.playing;
   int? get currentIndex => _service.currentIndex;
   String? get currentTitle => _service.mediaItem.value?.title;
   String? get currentPath => _service.mediaItem.value?.id;
   String? get currentArtist => _service.mediaItem.value?.artist;
+  String? get currentAlbum => _service.mediaItem.value?.album;
   Uri? get currentAlbumArtUri => _service.mediaItem.value?.artUri;
+  String? get nextTitle => _service.nextMediaItem?.title;
 
   Duration get position => _position;
   Duration get duration => _duration;

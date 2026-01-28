@@ -10,10 +10,21 @@ class ControlInput extends StatelessWidget {
   Widget build(BuildContext context) {
     final music = context.watch<MusicProvider>();
     return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              IconButton(
+                onPressed: music.toggleLoopOnce,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.repeat_one,
+                    key: ValueKey(music.isLoopOnce),
+                    color: music.isLoopOnce ? Colors.blue : Colors.white,
+                  ),
+                ),
+              ),
               IconButton(
                 iconSize: 45,
                 color: Colors.white,
@@ -21,15 +32,13 @@ class ControlInput extends StatelessWidget {
                 onPressed: music.previous,
               ),
 
-              const SizedBox(width: 20),
-
               Container(
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      iconSize: 60,
+                      iconSize: 40,
                       color: Colors.black,
                       icon: Icon(
                         music.isPlaying
@@ -46,13 +55,23 @@ class ControlInput extends StatelessWidget {
                     duration: 180.ms,
                   ),
 
-              const SizedBox(width: 20),
-
               IconButton(
                 iconSize: 45,
                 color: Colors.white,
                 icon: const Icon(Icons.skip_next_rounded),
                 onPressed: music.next,
+              ),
+
+              IconButton(
+                onPressed: music.toggleShuffle,
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    Icons.shuffle,
+                    key: ValueKey(music.isShuffleEnabled),
+                    color: music.isShuffleEnabled ? Colors.blue : Colors.white,
+                  ),
+                ),
               ),
             ],
           ),

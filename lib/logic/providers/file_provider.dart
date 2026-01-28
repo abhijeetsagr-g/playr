@@ -6,6 +6,7 @@ class FileProvider extends ChangeNotifier {
   final FileService _service;
   FileProvider(this._service);
 
+  bool _isInitialized = false;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -17,6 +18,7 @@ class FileProvider extends ChangeNotifier {
     await _service.getPermission();
     await getMedia();
     _changeLoading(false);
+    _isInitialized = true;
   }
 
   Future<void> getMedia() async {
@@ -26,6 +28,7 @@ class FileProvider extends ChangeNotifier {
   }
 
   bool hasPermission() => _service.hasPermission;
+  bool get isInitialized => _isInitialized;
 
   // helpers
   void _changeLoading(bool isloading) {

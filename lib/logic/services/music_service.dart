@@ -151,6 +151,30 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
     }
   }
 
+  // set loop
+  Future<void> setLoopOne(bool enabled) async {
+    await _player.setLoopMode(enabled ? LoopMode.one : LoopMode.off);
+  }
+
+  MediaItem? get nextMediaItem {
+    final state = _player.sequenceState;
+    final int? nextIndex = _player.nextIndex;
+
+    if (nextIndex != null && nextIndex < state.effectiveSequence.length) {
+      return state.effectiveSequence[nextIndex].tag as MediaItem;
+    }
+    return null;
+  }
+
+  // set shuffle
+  Future<void> setShuffle(bool enabled) async {
+    await _player.setShuffleModeEnabled(enabled);
+
+    if (enabled) {
+      await _player.shuffle();
+    }
+  }
+
   // helper
   AudioProcessingState _mapState(ProcessingState state) {
     switch (state) {
@@ -169,6 +193,7 @@ class MusicService extends BaseAudioHandler with QueueHandler, SeekHandler {
 
   // getter
   int? get currentIndex => _currentIndex;
+  bool get isShuffleEnabled => _player.shuffleModeEnabled;
   Stream<Duration> get positionStream => _player.positionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
 }

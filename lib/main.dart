@@ -5,8 +5,8 @@ import 'package:playr/logic/providers/file_provider.dart';
 import 'package:playr/logic/providers/music_provider.dart';
 import 'package:playr/logic/services/file_service.dart';
 import 'package:playr/logic/services/music_service.dart';
+import 'package:playr/ui/splash/splash_page.dart';
 import 'package:provider/provider.dart';
-import 'package:playr/ui/root/root_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.dark,
       darkTheme: MyTheme.darkTheme,
-      home: RootPage(),
+      home: SplashPage(),
     );
   }
 }

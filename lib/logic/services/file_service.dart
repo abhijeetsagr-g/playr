@@ -19,7 +19,10 @@ class FileService {
       }
     }
 
-    List<SongModel> audioList = await _audioQuery.querySongs();
+    List<SongModel> audioList = await _audioQuery.querySongs(
+      orderType: OrderType.ASC_OR_SMALLER,
+      sortType: SongSortType.ALBUM,
+    );
     List<Song> songs = [];
 
     for (var audio in audioList) {

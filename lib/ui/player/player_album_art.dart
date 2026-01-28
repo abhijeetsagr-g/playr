@@ -31,7 +31,7 @@ class PlayerAlbumArt extends StatelessWidget {
       },
 
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
         child: AspectRatio(
           aspectRatio: 1,
           child: ClipRRect(
