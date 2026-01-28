@@ -1,30 +1,41 @@
+import 'dart:collection';
 import 'package:audio_service/audio_service.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 import 'package:playr/core/utils/artwork_utils.dart';
-import 'package:playr/logic/model/song_model.dart';
 
 abstract class SongMediaItemMapper {
-  static final _artCache = <String, Uri?>{};
+  static final Map<int, Uri?> _artCache = HashMap();
 
-  static Future<MediaItem> map(Song song) async {
+  static Future<MediaItem> songModelToMediaItem(SongModel song) async {
     Uri? artUri;
 
-    if (_artCache.containsKey(song.path)) {
-      artUri = _artCache[song.path];
-    } else {
-      artUri = await saveArtworkToFile(
-        song.albumCover,
-        song.path.hashCode.toString(),
+    final albumId = song.albumId;
+
+    if (albumId != null && _artCache.containsKey(albumId)) {
+      artUri = _artCache[albumId];
+    } else if (albumId != null) {
+      // fetch raw artwork bytes
+      final bytes = await OnAudioQuery().queryArtwork(
+        albumId,
+        ArtworkType.ALBUM,
+        size: 300,
       );
-      _artCache[song.path] = artUri;
+
+      if (bytes != null) {
+        artUri = await saveArtworkToFile(bytes, albumId.toString());
+      }
+
+      _artCache[albumId] = artUri;
     }
 
     return MediaItem(
-      id: song.path,
+      id: song.uri!, // playable
       title: song.title,
+      album: song.album,
       artist: song.artist,
-      album: song.albumName,
-      duration: song.totalDur,
+      duration: Duration(milliseconds: song.duration ?? 0),
       artUri: artUri,
+      extras: {'albumId': song.albumId, 'songId': song.id},
     );
   }
 }

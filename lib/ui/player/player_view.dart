@@ -30,7 +30,7 @@ class PlayerView extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       MarqueeText(
-                        music.currentTitle ?? "Song Name",
+                        text: music.currentTitle ?? "Song Name",
                         maxWidth: MediaQuery.of(context).size.width * 0.6,
                         style: const TextStyle(
                           fontSize: 24,

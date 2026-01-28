@@ -19,20 +19,25 @@ class RootPage extends StatelessWidget {
             Positioned.fill(
               child: Consumer<FileProvider>(
                 builder: (context, fileProvider, child) {
-                  if (fileProvider.allSongs.isEmpty) {
-                    return Center(child: Text("No Songs Avaliable"));
+                  if (fileProvider.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
                   }
+
                   return HomeView();
                 },
               ),
             ),
+
             Positioned(
-              bottom: 10,
               left: 0,
               right: 0,
+              bottom: 0,
               child: MiniPlayer(
                 changePage: () {
-                  Navigator.push(context, slideUpRoute(const PlayerView()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PlayerView()),
+                  );
                 },
               ),
             ),

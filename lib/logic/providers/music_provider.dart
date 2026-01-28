@@ -2,12 +2,13 @@ import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 import 'package:playr/core/utils/song_media_item_wrapper.dart';
-import 'package:playr/logic/model/song_model.dart';
 import 'package:playr/logic/services/music_service.dart';
 
 class MusicProvider extends ChangeNotifier {
   final MusicService _service;
+  List<SongModel> _currentPlaylist = [];
 
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -39,20 +40,23 @@ class MusicProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> playPlaylist(List<Song> songs, int startIndex) async {
+  Future<void> playPlaylist(List<SongModel> songs, int startIndex) async {
+    if (_currentPlaylist == songs && startIndex == currentIndex) {
+      return;
+    }
+    _currentPlaylist = songs;
     final items = <MediaItem>[];
 
     for (final song in songs) {
-      final item = await SongMediaItemMapper.map(song);
+      final item = await SongMediaItemMapper.songModelToMediaItem(song);
       items.add(item);
     }
-
     await _service.setPlaylist(items, startIndex);
     await _service.play();
   }
 
-  Future<void> addToQueue(Song song) async {
-    final item = await SongMediaItemMapper.map(song);
+  Future<void> addToQueue(SongModel song) async {
+    final item = await SongMediaItemMapper.songModelToMediaItem(song);
 
     await _service.addSongToQueue(item);
   }
@@ -98,6 +102,7 @@ class MusicProvider extends ChangeNotifier {
   String? get currentPath => _service.mediaItem.value?.id;
   String? get currentArtist => _service.mediaItem.value?.artist;
   String? get currentAlbum => _service.mediaItem.value?.album;
+
   Uri? get currentAlbumArtUri => _service.mediaItem.value?.artUri;
   String? get nextTitle => _service.nextMediaItem?.title;
 

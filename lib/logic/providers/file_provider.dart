@@ -1,37 +1,70 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:playr/logic/model/song_model.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 import 'package:playr/logic/services/file_service.dart';
 
 class FileProvider extends ChangeNotifier {
   final FileService _service;
   FileProvider(this._service);
 
-  bool _isInitialized = false;
   bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  List<SongModel> _allSongs = [];
+  List<AlbumModel> _albums = [];
 
-  List<Song> _allSongs = [];
-  List<Song> get allSongs => _allSongs;
+  List<SongModel> _visibleSongs = [];
+  int _songsPageSize = 20;
+
+  final Map<int, Uint8List?> _albumArtCache = {};
 
   Future<void> init() async {
-    _changeLoading(true);
-    await _service.getPermission();
-    await getMedia();
-    _changeLoading(false);
-    _isInitialized = true;
+    if (_isLoading) return;
+    _setLoading(true);
+
+    _albums = await _service.getAlbums();
+    _allSongs = await _service.fetchSongs();
+
+    _updateVisibleSongs();
+    _setLoading(false);
   }
 
-  Future<void> getMedia() async {
-    _changeLoading(false);
-    _allSongs = await _service.getMedia();
-    _changeLoading(true);
+  void _updateVisibleSongs() {
+    _visibleSongs = _allSongs.take(_songsPageSize).toList();
+    notifyListeners();
   }
 
-  bool hasPermission() => _service.hasPermission;
-  bool get isInitialized => _isInitialized;
+  void loadMoreSongs() {
+    if (_songsPageSize < _allSongs.length) {
+      _songsPageSize += 20;
+      _updateVisibleSongs();
+    }
+  }
 
-  // helpers
-  void _changeLoading(bool isloading) {
+  // Optimized artwork fetch
+  Future<Uint8List?> getAlbumArtwork(int albumId) async {
+    if (_albumArtCache.containsKey(albumId)) return _albumArtCache[albumId];
+
+    final art = await _service.fetchArtwork(
+      id: albumId,
+      type: ArtworkType.ALBUM,
+      size: 200,
+    );
+
+    _albumArtCache[albumId] = art;
+    return art;
+  }
+
+  Future<List<SongModel>> fetchSongsByAlbum(int albumId) async {
+    return await _service.fetchSongsByAlbum(albumId);
+  }
+
+  // Getters
+  List<SongModel> get visibleSongs => _visibleSongs;
+  List<AlbumModel> get albums => _albums;
+  List<SongModel> get allSongs => _allSongs;
+  bool get isLoading => _isLoading;
+
+  void _setLoading(bool isloading) {
     _isLoading = isloading;
     notifyListeners();
   }

@@ -1,49 +1,53 @@
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:playr/logic/model/song_model.dart';
 import 'dart:typed_data';
 
 class FileService {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   bool _hasPermission = false;
 
-  Future<void> getPermission() async {
+  Future<bool> _ensurePermission() async {
+    if (_hasPermission) return true;
     _hasPermission = await _audioQuery.checkAndRequest();
+    return _hasPermission;
   }
 
-  // Get a List of Songs, use it on Provider
-  Future<List<Song>> getMedia() async {
-    if (!_hasPermission) {
-      await getPermission();
-      if (!_hasPermission) {
-        return [];
-      }
-    }
+  Future<List<SongModel>> fetchSongs({int? limit}) async {
+    if (!await _ensurePermission()) return [];
 
-    List<SongModel> audioList = await _audioQuery.querySongs(
+    return await _audioQuery.querySongs(
       orderType: OrderType.ASC_OR_SMALLER,
-      sortType: SongSortType.ALBUM,
+      sortType: SongSortType.TITLE,
+      ignoreCase: true,
     );
-    List<Song> songs = [];
+  }
 
-    for (var audio in audioList) {
-      Uint8List? artwork = await _audioQuery.queryArtwork(
-        audio.id,
-        ArtworkType.AUDIO,
-        size: 200,
-      );
+  // get songs by album
+  Future<List<SongModel>> fetchSongsByAlbum(int albumId) async {
+    if (!await _ensurePermission()) return [];
 
-      songs.add(
-        Song(
-          path: audio.uri ?? '',
-          title: audio.title,
-          artist: audio.artist ?? 'Unknown Artist',
-          albumName: audio.album ?? 'Unknown Album',
-          totalDur: Duration(milliseconds: audio.duration ?? 0),
-          albumCover: artwork,
-        ),
-      );
-    }
-    return songs;
+    return await _audioQuery.queryAudiosFrom(
+      AudiosFromType.ALBUM_ID,
+      albumId,
+      sortType: SongSortType.TITLE,
+      // orderType: OrderType.,
+    );
+  }
+
+  // get album details
+  Future<List<AlbumModel>> getAlbums() async {
+    if (!await _ensurePermission()) return [];
+    return await _audioQuery.queryAlbums(
+      sortType: AlbumSortType.ALBUM,
+      orderType: OrderType.ASC_OR_SMALLER,
+    );
+  }
+
+  Future<Uint8List?> fetchArtwork({
+    required int id,
+    required ArtworkType type,
+    int size = 300,
+  }) async {
+    return await _audioQuery.queryArtwork(id, type, size: size);
   }
 
   // getters
