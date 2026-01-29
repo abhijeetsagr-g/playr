@@ -54,7 +54,7 @@ Playr is a **modern, offline-first music player** built with **Flutter**, focuse
 * **Flutter SDK**
   Install from the official guide: [https://flutter.dev/docs/get-started/install](https://flutter.dev/docs/get-started/install)
 
-* **Android Studio / Xcode** (for Android or iOS builds)
+* **Code-OSs** (for Android builds)
 
 ---
 
