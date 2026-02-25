@@ -1,5 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:on_audio_query/on_audio_query.dart';
+import 'package:playr/core/utils/song_to_media_item.dart';
 
 class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
@@ -51,19 +53,6 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
     );
   }
 
-  // Skip to Queue Index
-  @override
-  Future<void> skipToQueueItem(int index) async {
-    final q = queue.value;
-    if (index < 0 || index >= q.length) return;
-
-    // Load and play the song at the given index
-    await playSong(q[index]);
-
-    // Update queue index in playback state
-    playbackState.add(playbackState.value.copyWith(queueIndex: index));
-  }
-
   // Play a Song
   Future<void> playSong(MediaItem song) async {
     mediaItem.add(song);
@@ -96,13 +85,11 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> skipToPrevious() async {
     final position = _player.position;
-
-    // reset if less than 3 sec
-    if (position.inSeconds > 3) {
-      await seek(Duration.zero);
-    } else {
+    if (position.inSeconds < 3) {
       final current = playbackState.value.queueIndex ?? 0;
       if (current > 0) await skipToQueueItem(current - 1);
+    } else {
+      await seek(Duration.zero);
     }
   }
 
@@ -112,7 +99,6 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffleModeEnabled(enabled);
 
-    // Change State with Shuffle On
     playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
   }
 
@@ -128,6 +114,40 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
     playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
   }
 
+  Future<void> loadQueue(List<SongModel> items, int startIndex) async {
+    final mediaItems = items.map((e) => songToMediaItem(e)).toList();
+
+    queue.add(mediaItems);
+    mediaItem.add(mediaItems[startIndex]);
+
+    await _player.setAudioSources(
+      mediaItems.map((item) => AudioSource.uri(Uri.parse(item.id))).toList(),
+      initialIndex: startIndex,
+      initialPosition: Duration.zero,
+    );
+
+    await _player.play();
+  }
+
+  Future<void> addToQueue(MediaItem item) async {
+    await _player.addAudioSource(AudioSource.uri(Uri.parse(item.id)));
+    queue.add([...queue.value, item]);
+  }
+
+  @override
+  Future<void> skipToQueueItem(int index) async {
+    await _player.seek(Duration.zero, index: index);
+    mediaItem.add(queue.value[index]); // keep metadata in sync
+    await _player.play();
+  }
+
+  // Remove by index
+  Future<void> removeFromQueue(int index) async {
+    await _player.removeAudioSourceAt(index);
+    final updated = [...queue.value]..removeAt(index);
+    queue.add(updated);
+  }
+
   // main controls
   @override
   Future<void> play() async => _player.play();
@@ -138,7 +158,6 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> stop() async {
     await _player.stop();
-    await super.stop();
   }
 
   // getters

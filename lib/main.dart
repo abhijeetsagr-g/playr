@@ -1,6 +1,9 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:playr/logic/bloc/player_bloc/player_bloc.dart';
 import 'package:playr/logic/services/playback_service.dart';
+import 'package:playr/ui/home/view/home_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +18,12 @@ void main() async {
     ),
   );
 
-  runApp(const MyApp());
+  runApp(
+    BlocProvider(
+      create: (BuildContext context) => PlayerBloc(audioHandler),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,11 +31,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // themeMode: ThemeMode.dark,
-      // darkTheme: MyTheme.darkTheme,
-      // home: SplashPage(),
-    );
+    return MaterialApp(debugShowCheckedModeBanner: false, home: HomeView());
   }
 }

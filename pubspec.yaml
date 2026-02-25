@@ -15,13 +15,7 @@ dependencies:
   on_audio_query: ^2.9.0
   just_audio: ^0.10.5
   audio_service: ^0.18.18
-  provider: ^6.1.5+1
-  path_provider: ^2.1.5
-  marquee: 
-  flutter_animate: ^4.5.2
-  flutter_slidable: ^4.0.3
-  flutter_svg: ^1.0.0
-  
+  flutter_bloc: ^9.1.1  
 
 dev_dependencies:
   flutter_test:
