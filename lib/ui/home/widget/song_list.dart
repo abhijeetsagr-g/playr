@@ -1,40 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:playr/core/utils/song_to_media_item.dart';
-import 'package:playr/logic/provider/audio_providers.dart';
-import 'package:playr/ui/player/view/player_view.dart';
+import 'package:playr/core/utils/format_dur.dart';
+import 'package:playr/logic/bloc/media_bloc/media_cubit.dart';
+import 'package:playr/logic/bloc/media_bloc/media_state.dart';
+import 'package:playr/logic/bloc/player_bloc/player_bloc.dart';
 
-class SongList extends ConsumerWidget {
+class SongList extends StatelessWidget {
   const SongList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final songsAsync = ref.watch(songListProvider(SongSortType.TITLE));
-    final playback = ref.watch(playbackServiceProvider);
+  Widget build(BuildContext context) {
+    return BlocBuilder<MediaCubit, MediaState>(
+      builder: (context, state) {
+        if (state.status == MediaStatus.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return songsAsync.when(
-      loading: () => const CircularProgressIndicator(),
-      error: (e, _) => Text('Error: $e'),
-      data: (songs) => ListView.builder(
-        itemCount: songs.length,
-        itemBuilder: (context, index) {
-          final song = songs[index];
-          return ListTile(
-            title: Text(song.title),
-            onTap: () {
-              // Convert SongModel → MediaItem, then load the queue
-              final items = songs.map((s) => songToMediaItem(s)).toList();
-              playback.loadQueue(items, index);
+        if (state.status == MediaStatus.error) {
+          return Center(child: Text(state.error ?? "Something went wrong"));
+        }
 
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PlayerView()),
-              );
-            },
-          );
-        },
-      ),
+        final songs = state.songs;
+
+        return ListView.builder(
+          itemCount: songs.length,
+          itemBuilder: (context, index) {
+            final song = songs[index];
+
+            return _SongTile(song: song, playlist: songs, index: index);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _SongTile extends StatelessWidget {
+  final SongModel song;
+  final List<SongModel> playlist;
+  final int index;
+
+  const _SongTile({
+    required this.song,
+    required this.playlist,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocSelector<PlayerBloc, PlayerState, bool>(
+      selector: (state) => state.currentSong?.uri == song.uri,
+      builder: (context, isActive) {
+        return ListTile(
+          selected: isActive,
+          textColor: isActive ? Colors.purple : null,
+          leading: QueryArtworkWidget(
+            id: song.id,
+            type: ArtworkType.AUDIO,
+            nullArtworkWidget: const Icon(Icons.music_note),
+          ),
+          trailing: Text(formatDur(song.duration ?? 0)),
+          title: Text(song.title),
+          subtitle: Text(song.artist ?? "Unknown"),
+          onTap: () {
+            context.read<PlayerBloc>().add(LoadQueue(playlist, index));
+          },
+        );
+      },
     );
   }
 }
