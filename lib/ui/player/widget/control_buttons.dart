@@ -42,19 +42,6 @@ class ControlButtons extends StatelessWidget {
               icon: const Icon(Icons.skip_next_rounded),
               onPressed: () => bloc.add(SkipNext()),
             ),
-
-            // Repeat
-            // IconButton(
-            //   icon: Icon(
-            //     state.repeatMode == RepeatMode.one
-            //         ? Icons.repeat_one_rounded
-            //         : Icons.repeat_rounded,
-            //     color: state.repeatMode != RepeatMode.none
-            //         ? Theme.of(context).colorScheme.primary
-            //         : Colors.black,
-            //   ),
-            //   onPressed: () => bloc.add(CycleRepeat()),
-            // ),
           ],
         );
       },

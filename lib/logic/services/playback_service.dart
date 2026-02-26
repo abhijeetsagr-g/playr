@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:playr/core/utils/song_to_media_item.dart';
 
 class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
   bool _isLoading = false;
+  List<MediaItem> _originalQueue = [];
 
   PlaybackService() {
     _init();
@@ -36,6 +40,7 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
 
       // Which actions are supported (for Android media session)
       systemActions: {
+        MediaAction.stop,
         MediaAction.setRepeatMode,
         MediaAction.seek,
         MediaAction.skipToNext,
@@ -70,9 +75,7 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   // Play a Song
   Future<void> playSong(MediaItem song) async {
     mediaItem.add(song);
-    await _player.setAudioSource(
-      AudioSource.uri(Uri.parse(song.id)), // item.id = file URI
-    );
+    await _player.setAudioSource(AudioSource.uri(Uri.parse(song.id)));
 
     await play();
   }
@@ -112,6 +115,15 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffleModeEnabled(enabled);
+
+    if (enabled) {
+      final shuffledIndices = _player.shuffleIndices;
+      final current = queue.value;
+      final shuffled = shuffledIndices.map((i) => current[i]).toList();
+      queue.add(shuffled);
+    } else {
+      queue.add(_originalQueue);
+    }
   }
 
   // set Repeat
@@ -125,10 +137,27 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   }
 
   Future<void> loadQueue(List<SongModel> items, int startIndex) async {
-    final mediaItems = items.map((e) => songToMediaItem(e)).toList();
+    final tempDir = await getTemporaryDirectory();
 
+    final mediaItems = await Future.wait(
+      items.map((song) async {
+        // pre-cache artworks
+        Uri? artUri;
+        final artBytes = await OnAudioQuery().queryArtwork(
+          song.id,
+          ArtworkType.AUDIO,
+        );
+        if (artBytes != null) {
+          final file = File('${tempDir.path}/art_${song.id}.jpg');
+          if (!await file.exists()) await file.writeAsBytes(artBytes);
+          artUri = Uri.file(file.path);
+        }
+        return songToMediaItem(song, artUri: artUri);
+      }),
+    );
     _isLoading = true;
 
+    _originalQueue = mediaItems;
     queue.add(mediaItems);
     mediaItem.add(mediaItems[startIndex]);
 

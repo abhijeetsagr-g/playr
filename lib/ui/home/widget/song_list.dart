@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:playr/core/utils/format_dur.dart';
-import 'package:playr/core/widget/marquee_text.dart';
 import 'package:playr/logic/bloc/media_bloc/media_cubit.dart';
 import 'package:playr/logic/bloc/media_bloc/media_state.dart';
 import 'package:playr/logic/bloc/player_bloc/player_bloc.dart';
-import 'package:playr/ui/player/view/player_view.dart';
 
 class SongList extends StatelessWidget {
   const SongList({super.key});
@@ -64,7 +62,7 @@ class _SongTile extends StatelessWidget {
             nullArtworkWidget: const Icon(Icons.music_note),
           ),
           trailing: Text(formatDur(song.duration ?? 0)),
-          title: MarqueeText(text: song.title, style: TextStyle()),
+          title: Text(song.title),
           subtitle: Text(song.artist ?? "Unknown"),
           onTap: () {
             context.read<PlayerBloc>().add(LoadQueue(playlist, index));

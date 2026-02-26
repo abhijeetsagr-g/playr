@@ -41,7 +41,7 @@ class NextSongLabel extends StatelessWidget {
                       nextSong?.title ?? 'End of queue',
                       style: TextStyle(fontSize: 13, color: Colors.black),
                       maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      overflow: TextOverflow.fade,
                     ),
                   ],
                 ),
