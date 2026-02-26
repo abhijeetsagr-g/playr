@@ -5,6 +5,7 @@ import 'package:playr/core/utils/song_to_media_item.dart';
 
 class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player = AudioPlayer();
+  bool _isLoading = false;
 
   PlaybackService() {
     _init();
@@ -13,12 +14,17 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   void _init() {
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
 
-    _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) skipToNext();
+    // updates song through natural completion
+    _player.currentIndexStream.listen((index) {
+      if (_isLoading) return;
+      if (index == null) return;
+      final q = queue.value;
+      if (q.isEmpty || index >= q.length) return;
+      mediaItem.add(q[index]);
     });
   }
 
-  // Converts just_audio's internal state into audio_service's PlaybackState
+  // Converts just_audio's internal state into audio_service's AudioProcessing State
   PlaybackState _transformEvent(PlaybackEvent event) {
     return PlaybackState(
       // Which buttons to show on the notification / lock screen
@@ -50,6 +56,14 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
       queueIndex: event.currentIndex,
+      shuffleMode: _player.shuffleModeEnabled
+          ? AudioServiceShuffleMode.all
+          : AudioServiceShuffleMode.none,
+      repeatMode: switch (_player.loopMode) {
+        LoopMode.one => AudioServiceRepeatMode.one,
+        LoopMode.all => AudioServiceRepeatMode.all,
+        _ => AudioServiceRepeatMode.none,
+      },
     );
   }
 
@@ -98,8 +112,6 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
     final enabled = shuffleMode == AudioServiceShuffleMode.all;
     await _player.setShuffleModeEnabled(enabled);
-
-    playbackState.add(playbackState.value.copyWith(shuffleMode: shuffleMode));
   }
 
   // set Repeat
@@ -110,12 +122,12 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
       AudioServiceRepeatMode.all => LoopMode.all,
       _ => LoopMode.off,
     });
-
-    playbackState.add(playbackState.value.copyWith(repeatMode: repeatMode));
   }
 
   Future<void> loadQueue(List<SongModel> items, int startIndex) async {
     final mediaItems = items.map((e) => songToMediaItem(e)).toList();
+
+    _isLoading = true;
 
     queue.add(mediaItems);
     mediaItem.add(mediaItems[startIndex]);
@@ -125,6 +137,8 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
       initialIndex: startIndex,
       initialPosition: Duration.zero,
     );
+
+    _isLoading = false;
 
     await _player.play();
   }
@@ -137,7 +151,6 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   @override
   Future<void> skipToQueueItem(int index) async {
     await _player.seek(Duration.zero, index: index);
-    mediaItem.add(queue.value[index]); // keep metadata in sync
     await _player.play();
   }
 

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -10,48 +9,29 @@ part 'player_state.dart';
 class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
   final PlaybackService _playback;
 
-  late final StreamSubscription<PlaybackState> _playbackSub;
-  late final StreamSubscription<MediaItem?> _mediaItemSub;
+  Stream<Duration> get position => _playback.positionStream;
+  Stream<Duration?> get duration => _playback.durationStream;
 
   PlayerBloc(this._playback) : super(PlayerState()) {
-    // Listen to playback state (play/pause/buffering/completed)
-    _playbackSub = _playback.playbackState.listen((playbackState) {
-      add(_PlaybackStateChanged(playbackState));
+    _playback.playbackState.listen((pbState) {
+      add(PlaybackStateChanged(pbState.playing, pbState.processingState));
     });
 
-    // Listen to current playing media
-    _mediaItemSub = _playback.mediaItem.listen((mediaItem) {
-      if (mediaItem != null) {
-        add(_MediaItemChanged(mediaItem));
-      }
-    });
+    _playback.mediaItem.listen((mediaItem) {
+      if (mediaItem == null) return;
 
-    /// ---------------- STATE LISTENERS ----------------
+      if (state.queue.isEmpty) return;
 
-    on<_PlaybackStateChanged>((event, emit) {
-      final processingState = event.state.processingState;
-
-      emit(
-        state.copyWith(
-          isPlaying: event.state.playing,
-          isBuffering: processingState == AudioProcessingState.buffering,
-          isCompleted: processingState == AudioProcessingState.completed,
-        ),
+      final newSong = state.queue.firstWhere(
+        (song) => song.uri == mediaItem.id,
+        orElse: () => state.currentSong ?? state.queue.first,
       );
+      add(SongChanged(newSong));
     });
 
-    on<_MediaItemChanged>((event, emit) {
-      final song = state.queue
-          .where((s) => s.uri == event.mediaItem.id)
-          .cast<SongModel?>()
-          .firstOrNull;
-
-      if (song != null) {
-        emit(state.copyWith(currentSong: song));
-      }
+    on<SongChanged>((event, emit) {
+      emit(state.copyWith(currentSong: event.song, isPlaying: true));
     });
-
-    // Commands
 
     on<TogglePlayPause>((event, emit) async {
       if (state.isPlaying) {
@@ -59,6 +39,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
       } else {
         await _playback.play();
       }
+      emit(state.copyWith(isPlaying: !state.isPlaying));
     });
 
     on<SkipNext>((event, emit) async {
@@ -74,50 +55,56 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     });
 
     on<LoadQueue>((event, emit) async {
+      emit(
+        state.copyWith(
+          currentSong: event.playlist[event.startIndex],
+          isPlaying: true,
+          queue: event.playlist,
+        ),
+      );
       await _playback.loadQueue(event.playlist, event.startIndex);
-
-      emit(state.copyWith(queue: event.playlist));
-      // currentSong & isPlaying handled by streams
     });
 
     on<ToggleShuffle>((event, emit) async {
-      final newShuffle = !state.isShuffle;
-
       await _playback.setShuffleMode(
-        newShuffle ? AudioServiceShuffleMode.all : AudioServiceShuffleMode.none,
+        state.isShuffle
+            ? AudioServiceShuffleMode.none
+            : AudioServiceShuffleMode.all,
       );
 
-      emit(state.copyWith(isShuffle: newShuffle));
+      emit(state.copyWith(isShuffle: !state.isShuffle));
     });
 
     on<CycleRepeat>((event, emit) async {
-      late AudioServiceRepeatMode audioRepeat;
+      late AudioServiceRepeatMode repeatMode;
       late RepeatMode newMode;
-
       switch (state.repeatMode) {
-        case RepeatMode.none:
-          audioRepeat = AudioServiceRepeatMode.one;
-          newMode = RepeatMode.one;
-          break;
         case RepeatMode.one:
-          audioRepeat = AudioServiceRepeatMode.all;
-          newMode = RepeatMode.all;
+          repeatMode = AudioServiceRepeatMode.none;
+          newMode = RepeatMode.none;
           break;
         case RepeatMode.all:
-          audioRepeat = AudioServiceRepeatMode.none;
-          newMode = RepeatMode.none;
+          repeatMode = AudioServiceRepeatMode.one;
+          newMode = RepeatMode.one;
+          break;
+        case RepeatMode.none:
+          repeatMode = AudioServiceRepeatMode.all;
+          newMode = RepeatMode.all;
           break;
       }
 
-      await _playback.setRepeatMode(audioRepeat);
+      await _playback.setRepeatMode(repeatMode);
+
       emit(state.copyWith(repeatMode: newMode));
     });
-  }
 
-  @override
-  Future<void> close() {
-    _playbackSub.cancel();
-    _mediaItemSub.cancel();
-    return super.close();
+    on<PlaybackStateChanged>((event, emit) {
+      if (event.processingState == AudioProcessingState.buffering ||
+          event.processingState == AudioProcessingState.loading) {
+        return;
+      }
+
+      emit(state.copyWith(isBuffering: false, isPlaying: event.isPlaying));
+    });
   }
 }

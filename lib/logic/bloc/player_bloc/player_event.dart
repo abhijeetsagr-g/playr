@@ -23,13 +23,13 @@ class ToggleShuffle extends PlayerEvent {}
 
 class CycleRepeat extends PlayerEvent {}
 
-/// 🔒 Internal events (stream-driven)
-class _PlaybackStateChanged extends PlayerEvent {
-  final PlaybackState state;
-  _PlaybackStateChanged(this.state);
+class SongChanged extends PlayerEvent {
+  final SongModel song;
+  SongChanged(this.song);
 }
 
-class _MediaItemChanged extends PlayerEvent {
-  final MediaItem mediaItem;
-  _MediaItemChanged(this.mediaItem);
+class PlaybackStateChanged extends PlayerEvent {
+  final bool isPlaying;
+  final AudioProcessingState processingState;
+  PlaybackStateChanged(this.isPlaying, this.processingState);
 }

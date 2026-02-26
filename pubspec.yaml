@@ -15,7 +15,8 @@ dependencies:
   on_audio_query: ^2.9.0
   just_audio: ^0.10.5
   audio_service: ^0.18.18
-  flutter_bloc: ^9.1.1  
+  flutter_bloc: ^9.1.1
+  marquee: ^2.3.0  
 
 dev_dependencies:
   flutter_test:
