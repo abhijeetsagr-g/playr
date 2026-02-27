@@ -12,6 +12,12 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
   Stream<Duration> get position => _playback.positionStream;
   Stream<Duration?> get duration => _playback.durationStream;
 
+  Stream<bool> get isPlaying => _playback.isPlayingStream;
+  Stream<MediaItem?> get currentSong => _playback.currentSongStream;
+  Stream<AudioServiceRepeatMode> get repeatMode => _playback.repeatModeStream;
+  Stream<AudioServiceShuffleMode> get shuffleMode =>
+      _playback.shuffleModeStream;
+
   PlayerBloc(this._playback) : super(PlayerState()) {
     _playback.playbackState.listen((pbState) {
       add(PlaybackStateChanged(pbState.playing, pbState.processingState));
@@ -30,9 +36,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
     });
 
     on<SongChanged>((event, emit) {
-      emit(state.copyWith(currentSong: event.song, isPlaying: true));
+      emit(state.copyWith(currentSong: event.song));
     });
-
     on<TogglePlayPause>((event, emit) async {
       if (state.isPlaying) {
         await _playback.pause();

@@ -18,12 +18,20 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   void _init() {
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
 
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        _player.pause();
+        _player.seek(Duration.zero);
+      }
+    });
+
     // updates song through natural completion
     _player.currentIndexStream.listen((index) {
       if (_isLoading) return;
       if (index == null) return;
       final q = queue.value;
       if (q.isEmpty || index >= q.length) return;
+
       mediaItem.add(q[index]);
     });
   }
@@ -94,6 +102,7 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
     if (nextIndex < q.length) {
       await skipToQueueItem(nextIndex);
     } else {
+      seek(Duration.zero);
       await stop();
     }
   }
@@ -205,7 +214,16 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   // getters
   Stream<Duration> get positionStream => _player.positionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
-  bool get isPlaying => _player.playing;
+
+  Stream<bool> get isPlayingStream => playbackState.map((s) => s.playing);
+  Stream<AudioServiceShuffleMode> get shuffleModeStream =>
+      playbackState.map((s) => s.shuffleMode);
+  Stream<AudioProcessingState> get processingStateStream =>
+      playbackState.map((s) => s.processingState);
+  Stream<List<MediaItem>> get queueStream => queue.stream;
+  Stream<MediaItem?> get currentSongStream => mediaItem.stream;
+  Stream<AudioServiceRepeatMode> get repeatModeStream =>
+      playbackState.map((s) => s.repeatMode);
 
   // dispose
   @override
