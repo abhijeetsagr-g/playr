@@ -216,6 +216,16 @@ class PlaybackService extends BaseAudioHandler with QueueHandler, SeekHandler {
   Stream<Duration?> get durationStream => _player.durationStream;
 
   Stream<bool> get isPlayingStream => playbackState.map((s) => s.playing);
+  Stream<bool> get canSkipNextStream => playbackState.map((s) {
+    final index = s.queueIndex ?? 0;
+    return index < queue.value.length - 1;
+  });
+
+  Stream<bool> get canSkipPrevStream => playbackState.map((s) {
+    final index = s.queueIndex ?? 0;
+    return index > 0;
+  });
+
   Stream<AudioServiceShuffleMode> get shuffleModeStream =>
       playbackState.map((s) => s.shuffleMode);
   Stream<AudioProcessingState> get processingStateStream =>

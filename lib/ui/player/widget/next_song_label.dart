@@ -8,16 +8,18 @@ class NextSongLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<PlayerBloc, PlayerState, SongModel?>(
-      selector: (state) {
-        final queue = state.queue;
-        final current = state.currentSong;
-        if (queue.isEmpty || current == null) return null;
-        final currentIndex = queue.indexWhere((s) => s.id == current.id);
-        final nextIndex = currentIndex + 1;
-        return nextIndex < queue.length ? queue[nextIndex] : null;
-      },
-      builder: (context, nextSong) {
+    final bloc = context.read<PlayerBloc>();
+    return StreamBuilder<SongModel?>(
+      stream: bloc.currentSong,
+      builder: (context, snapshot) {
+        final current = snapshot.data;
+        final queue = bloc.state.queue;
+        SongModel? nextSong;
+        if (current != null && queue.isNotEmpty) {
+          final currentIndex = queue.indexWhere((s) => s.id == current.id);
+          final nextIndex = currentIndex + 1;
+          nextSong = nextIndex < queue.length ? queue[nextIndex] : null;
+        }
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -28,18 +30,14 @@ class NextSongLabel extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Next up',
-                      style: TextStyle(
-                        fontSize: 11,
-                        // color: Colors.white38,
-                        letterSpacing: 0.8,
-                      ),
+                      style: TextStyle(fontSize: 11, letterSpacing: 0.8),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       nextSong?.title ?? 'End of queue',
-                      style: TextStyle(fontSize: 13, color: Colors.black),
+                      style: const TextStyle(fontSize: 13, color: Colors.black),
                       maxLines: 1,
                       overflow: TextOverflow.fade,
                     ),

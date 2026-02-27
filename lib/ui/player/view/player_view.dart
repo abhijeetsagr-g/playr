@@ -13,39 +13,42 @@ class PlayerView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<PlayerBloc, PlayerState, SongModel?>(
-      selector: (state) => state.currentSong,
-      builder: (context, song) => Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.keyboard_arrow_down),
+    final bloc = context.read<PlayerBloc>();
+    return StreamBuilder<SongModel?>(
+      stream: bloc.currentSong,
+      builder: (context, snapshot) {
+        final song = snapshot.data;
+        return Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.keyboard_arrow_down),
+            ),
+            centerTitle: true,
+            title: Text(
+              song?.album ?? "Unknown Album",
+              style: const TextStyle(fontSize: 18),
+            ),
           ),
-          centerTitle: true,
-          title: Text(
-            song?.album ?? "Unknown Album",
-            style: TextStyle(fontSize: 18),
+          body: Padding(
+            padding: const EdgeInsets.all(25.0),
+            child: Column(
+              children: [
+                AlbumArt(song: song),
+                const SizedBox(height: 20),
+                SongInfo(
+                  title: song?.title ?? "Unknown title",
+                  artist: song?.artist ?? "Unknown Artist",
+                ),
+                const SizedBox(height: 20),
+                SeekBar(),
+                ControlButtons(),
+              ],
+            ),
           ),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(25.0),
-          child: Column(
-            children: [
-              AlbumArt(song: song),
-              SizedBox(height: 20),
-              SongInfo(
-                title: song?.title ?? "Unknown title",
-                artist: song?.artist ?? "Unknown Artist",
-              ),
-              SizedBox(height: 20),
-              SeekBar(),
-              ControlButtons(),
-              // NextSongLabel(),
-            ],
-          ),
-        ),
-        bottomNavigationBar: NextSongLabel(),
-      ),
+          bottomNavigationBar: NextSongLabel(),
+        );
+      },
     );
   }
 }

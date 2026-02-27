@@ -11,105 +11,50 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerState> {
 
   Stream<Duration> get position => _playback.positionStream;
   Stream<Duration?> get duration => _playback.durationStream;
-
   Stream<bool> get isPlaying => _playback.isPlayingStream;
-  Stream<MediaItem?> get currentSong => _playback.currentSongStream;
   Stream<AudioServiceRepeatMode> get repeatMode => _playback.repeatModeStream;
   Stream<AudioServiceShuffleMode> get shuffleMode =>
       _playback.shuffleModeStream;
+  Stream<bool> get canSkipNext => _playback.canSkipNextStream;
+  Stream<bool> get canSkipPrev => _playback.canSkipPrevStream;
+
+  Stream<SongModel?> get currentSong => _playback.currentSongStream.map(
+    (item) => item == null
+        ? null
+        : state.queue.firstWhere(
+            (song) => song.uri == item.id,
+            orElse: () => state.queue.first,
+          ),
+  );
 
   PlayerBloc(this._playback) : super(PlayerState()) {
-    _playback.playbackState.listen((pbState) {
-      add(PlaybackStateChanged(pbState.playing, pbState.processingState));
-    });
-
-    _playback.mediaItem.listen((mediaItem) {
-      if (mediaItem == null) return;
-
-      if (state.queue.isEmpty) return;
-
-      final newSong = state.queue.firstWhere(
-        (song) => song.uri == mediaItem.id,
-        orElse: () => state.currentSong ?? state.queue.first,
-      );
-      add(SongChanged(newSong));
-    });
-
-    on<SongChanged>((event, emit) {
-      emit(state.copyWith(currentSong: event.song));
-    });
     on<TogglePlayPause>((event, emit) async {
-      if (state.isPlaying) {
-        await _playback.pause();
-      } else {
-        await _playback.play();
-      }
-      emit(state.copyWith(isPlaying: !state.isPlaying));
+      _playback.playbackState.value.playing
+          ? await _playback.pause()
+          : await _playback.play();
     });
-
-    on<SkipNext>((event, emit) async {
-      await _playback.skipToNext();
-    });
-
-    on<SkipPrev>((event, emit) async {
-      await _playback.skipToPrevious();
-    });
-
-    on<Seek>((event, emit) async {
-      await _playback.seek(event.position);
-    });
-
+    on<SkipNext>((event, emit) async => await _playback.skipToNext());
+    on<SkipPrev>((event, emit) async => await _playback.skipToPrevious());
+    on<Seek>((event, emit) async => await _playback.seek(event.position));
     on<LoadQueue>((event, emit) async {
-      emit(
-        state.copyWith(
-          currentSong: event.playlist[event.startIndex],
-          isPlaying: true,
-          queue: event.playlist,
-        ),
-      );
+      emit(state.copyWith(queue: event.playlist));
       await _playback.loadQueue(event.playlist, event.startIndex);
     });
-
     on<ToggleShuffle>((event, emit) async {
+      final isShuffled =
+          _playback.playbackState.value.shuffleMode ==
+          AudioServiceShuffleMode.all;
       await _playback.setShuffleMode(
-        state.isShuffle
-            ? AudioServiceShuffleMode.none
-            : AudioServiceShuffleMode.all,
+        isShuffled ? AudioServiceShuffleMode.none : AudioServiceShuffleMode.all,
       );
-
-      emit(state.copyWith(isShuffle: !state.isShuffle));
     });
-
     on<CycleRepeat>((event, emit) async {
-      late AudioServiceRepeatMode repeatMode;
-      late RepeatMode newMode;
-      switch (state.repeatMode) {
-        case RepeatMode.one:
-          repeatMode = AudioServiceRepeatMode.none;
-          newMode = RepeatMode.none;
-          break;
-        case RepeatMode.all:
-          repeatMode = AudioServiceRepeatMode.one;
-          newMode = RepeatMode.one;
-          break;
-        case RepeatMode.none:
-          repeatMode = AudioServiceRepeatMode.all;
-          newMode = RepeatMode.all;
-          break;
-      }
-
-      await _playback.setRepeatMode(repeatMode);
-
-      emit(state.copyWith(repeatMode: newMode));
-    });
-
-    on<PlaybackStateChanged>((event, emit) {
-      if (event.processingState == AudioProcessingState.buffering ||
-          event.processingState == AudioProcessingState.loading) {
-        return;
-      }
-
-      emit(state.copyWith(isBuffering: false, isPlaying: event.isPlaying));
+      final current = _playback.playbackState.value.repeatMode;
+      await _playback.setRepeatMode(switch (current) {
+        AudioServiceRepeatMode.none => AudioServiceRepeatMode.all,
+        AudioServiceRepeatMode.all => AudioServiceRepeatMode.one,
+        _ => AudioServiceRepeatMode.none,
+      });
     });
   }
 }

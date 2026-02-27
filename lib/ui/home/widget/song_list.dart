@@ -5,6 +5,7 @@ import 'package:playr/core/utils/format_dur.dart';
 import 'package:playr/logic/bloc/media_bloc/media_cubit.dart';
 import 'package:playr/logic/bloc/media_bloc/media_state.dart';
 import 'package:playr/logic/bloc/player_bloc/player_bloc.dart';
+import 'package:playr/ui/player/widget/album_art.dart';
 
 class SongList extends StatelessWidget {
   const SongList({super.key});
@@ -50,23 +51,22 @@ class _SongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<PlayerBloc, PlayerState, bool>(
-      selector: (state) => state.currentSong?.uri == song.uri,
-      builder: (context, isActive) {
+    final bloc = context.read<PlayerBloc>();
+    return StreamBuilder<bool>(
+      stream: bloc.currentSong
+          .map((current) => current?.id == song.id)
+          .distinct(),
+      initialData: false,
+      builder: (context, snapshot) {
+        final isActive = snapshot.data ?? false;
         return ListTile(
           selected: isActive,
           textColor: isActive ? Colors.purple : null,
-          leading: QueryArtworkWidget(
-            id: song.id,
-            type: ArtworkType.AUDIO,
-            nullArtworkWidget: const Icon(Icons.music_note),
-          ),
+          leading: AlbumArt(song: song),
           trailing: Text(formatDur(song.duration ?? 0)),
           title: Text(song.title),
           subtitle: Text(song.artist ?? "Unknown"),
-          onTap: () {
-            context.read<PlayerBloc>().add(LoadQueue(playlist, index));
-          },
+          onTap: () => bloc.add(LoadQueue(playlist, index)),
         );
       },
     );
